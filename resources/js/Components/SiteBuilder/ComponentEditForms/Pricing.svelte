@@ -1,0 +1,210 @@
+<script>
+    import { onMount } from "svelte";
+    import { componentStore } from "../../../builder-store"
+    import { v4 as uuidv4 } from 'uuid'
+
+    export let component = null
+    let tab = 0
+
+    onMount(() => {
+        if (component.style == undefined || component.style == null) {
+            component.style = {
+                paddingTop: 40,
+                paddingBottom: 40,
+                textColor: '#000000',
+                backgroundColor: '#ffffff',
+            }
+        }
+    })
+
+    function changeTab(index) {
+        if (tab == index) return
+        tab = index
+    }
+
+    function updateComponent() {
+        let tempComponents = []
+        const unsubscribe = componentStore.subscribe((value) => {
+            tempComponents = value
+        })
+        unsubscribe()
+
+        componentStore.set(tempComponents)
+    }
+
+    function formChanged(e) {
+        updateComponent()
+    }
+
+    function addItem(e) {
+        e.preventDefault()
+
+        component.plans = [...component.plans, {
+            id: uuidv4(),
+            name: 'Plan name',
+            price: 'Free',
+            currency: '',
+            duration: '/mo',
+            button: {
+                text: 'Get started',
+                href: '#',
+            },
+            features: [
+                {
+                    id: uuidv4(),
+                    text: 'Feature...',
+                },
+            ],
+        }]
+
+        updateComponent()
+    }
+
+    function removeFeature(e, planId, id) {
+        e.preventDefault()
+
+        let temp = component.plans.map(a => {
+            if (a.id == planId) {
+                a.features = [...a.features.filter(b => b.id != id)]
+                return a
+            }
+            return a
+        })
+        component.plans = [...temp]
+        updateComponent()
+    }
+
+    function addFeature(e, id) {
+        e.preventDefault()
+
+        let temp = component.plans.map(a => {
+            if (a.id == id) {
+                a.features = [...a.features, {
+                    id: uuidv4(),
+                    text: 'Feature text...',
+                }]
+                return a
+            }
+            return a
+        })
+
+        component.plans = [...temp]
+        updateComponent()
+    }
+
+    function removeItem(e, id) {
+        e.preventDefault()
+
+        component.plans = [...component.plans.filter(a => a.id != id)]
+
+        updateComponent()
+    }
+</script>
+
+<div>
+
+    {#if component != null}
+
+    <div class="grid grid-cols-2 border-b border-neutral-200">
+        <button on:click={() => changeTab(0)} class={`${tab == 0 ? 'bg-yellow-50' : ''} py-4 px-6`}>Content</button>
+        <button on:click={() => changeTab(1)} class={`${tab == 1 ? 'bg-yellow-50' : ''} py-4 px-6`}>Style</button>
+    </div>
+
+    <form on:change={formChanged} class="p-8 flex flex-col gap-6 overflow-y-auto" style="max-height: calc(100vh - 177px);">
+
+        {#if tab == 0}
+
+        <div class="flex flex-col gap-2">
+            <label for="component-title">Title</label>
+            <input id="component-title" type="text" class="input" placeholder="Title" bind:value={component.section.title} />
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="component-description">Description</label>
+            <textarea id="component-description" type="text" class="input" placeholder="Description" bind:value={component.section.description}></textarea>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <div>Plans</div>
+
+            {#each component.plans as plan}
+            <div class="p-4 flex flex-col gap-2 bg-neutral-100 rounded">
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Name" bind:value={plan.name} />
+                </div>
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Price" bind:value={plan.price} />
+                </div>
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Currency" bind:value={plan.currency} />
+                </div>
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Duration" bind:value={plan.duration} />
+                </div>
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Button text" bind:value={plan.button.text} />
+                </div>
+                <div>
+                    <input type="text" class="input w-full text-sm" placeholder="Button link" bind:value={plan.button.href} />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                {#each plan.features as feature}
+                    <div class="p-4 bg-gray-200 rounded">
+                        <input type="text" class="input w-full text-sm" placeholder="Feature text" bind:value={feature.text} />
+                        <div class="mt-1">
+                            <button on:click={(e) => removeFeature(e, plan.id, feature.id)} class="py-1 px-4 text-sm rounded bg-red-500 hover:bg-red-600 text-white transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                {/each}
+                </div>
+
+                <div>
+                    <button on:click={(e) => addFeature(e, plan.id)} class="py-1 px-4 text-sm rounded bg-yellow-200 hover:bg-yellow-300 transition-all">Add feature</button>
+                </div>
+
+                <div>
+                    <button on:click={(e) => removeItem(e, plan.id)} class="py-1 px-4 text-sm rounded bg-red-500 hover:bg-red-600 text-white transition-all">Remove</button>
+                </div>
+            </div>
+            {/each}
+
+            <div>
+                <button on:click={addItem} class="py-1 px-4 text-sm rounded bg-yellow-200 hover:bg-yellow-300 transition-all">Add plan</button>
+            </div>
+        </div>
+
+        {/if}
+
+        {#if tab == 1}
+
+        <div class="flex items-center gap-2">
+            <label for="component-background-color">Background color</label>
+            <input id="component-background-color" type="color" class="w-6 h-6" bind:value={component.style.backgroundColor} />
+        </div>
+
+        <div class="flex items-center gap-2">
+            <label for="component-text-color">Text color</label>
+            <input id="component-text-color" type="color" class="w-6 h-6" bind:value={component.style.textColor} />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+                <label for="component-padding-top">Padding top (px)</label>
+                <input id="component-padding-top" type="number" class="input" bind:value={component.style.paddingTop} />
+            </div>
+            <div class="flex flex-col gap-1">
+                <label for="component-padding-bottom">Padding bottom (px)</label>
+                <input id="component-padding-bottom" type="number" class="input" bind:value={component.style.paddingBottom} />
+            </div>
+        </div>
+
+        {/if}
+
+    </form>
+
+    {/if}
+
+</div>
